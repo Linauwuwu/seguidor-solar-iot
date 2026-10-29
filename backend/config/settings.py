@@ -61,7 +61,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Sin POSTGRES_HOST (ejecución local con `manage.py runserver`) se usa SQLite3;
+# docker-compose define POSTGRES_HOST=db y sigue usando PostgreSQL.
 DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+} if not env("POSTGRES_HOST", default="") else {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": env("POSTGRES_DB", default="ecs_iot"),

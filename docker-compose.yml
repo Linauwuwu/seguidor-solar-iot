@@ -109,15 +109,18 @@ services:
         - action: rebuild
           path: ./backend/requirements.txt
 
-  simulator:
-    build: ./simulator
+  simulacion_seguidor:
+    build: ./backend
     restart: unless-stopped
     env_file: .env
     environment:
-      MQTT_BROKER_HOST: mosquitto
+      POSTGRES_HOST: db
+    command: python manage.py simular_seguidor --esp32-real
     depends_on:
-      mosquitto:
+      db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

@@ -48,6 +48,29 @@
     <span data-sensor-id="{{ sensor.id }}" data-variable="{{ sensor.variable }}" data-device-slug="{{ device.slug }}" data-is-control="{% if widget.is_control %}1{% else %}0{% endif %}" data-min="{{ widget.min_value }}" data-max="{{ widget.max_value }}"></span>
     {% endwith %}{% endif %}{% endfor %}{% endfor %}
   </div>
+  <section class="solar-panel" aria-label="Variables de proceso en tiempo real">
+    <div class="solar-panel-heading"><div><span class="solar-eyebrow">VARIABLES DE PROCESO</span><h2>Lecturas en tiempo real por equipo</h2></div><span class="solar-live-chip">Actualiza cada 2,5 s</span></div>
+    <div class="live-device-grid">
+      {% for device in devices %}
+      <div class="live-device{% if device.slug == 'plc' %} live-device-plc{% endif %}">
+        <h3>{{ device.name }} <small>{{ device.slug }}</small></h3>
+        <div class="live-cards">
+          {% for sensor in device.sensors.all %}{% if sensor.is_active %}
+          <div class="live-card">
+            <span>{{ sensor.variable }}</span>
+            <strong data-live-sensor="{{ sensor.id }}">--</strong>
+            <small>{{ sensor.unit }}</small>
+          </div>
+          {% endif %}{% empty %}
+          <p class="solar-hint">Sin sensores aún.</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% empty %}
+      <p class="solar-hint">No hay dispositivos activos. Ejecuta <code>python manage.py simular_seguidor</code> para simular el sistema completo.</p>
+      {% endfor %}
+    </div>
+  </section>
   <section class="solar-workspace" aria-label="Posición solar y luminosidad">
     <div class="solar-panel solar-sky-panel">
       <div class="solar-panel-heading"><div><span class="solar-eyebrow">POSICIÓN SOLAR</span><h2>Esfera celeste</h2></div><span class="solar-live-chip" id="solar-position-state">Esperando datos</span></div>

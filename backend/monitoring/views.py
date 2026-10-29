@@ -23,7 +23,7 @@ from .forms import (
     UserCreateForm,
     WidgetForm,
 )
-from .models import Device, ManualEntry, Product, ProductType, Profile, Sensor, SiteBranding
+from .models import Device, ManualEntry, Product, ProductType, Profile, Sensor, SensorReading, SiteBranding
 from .mqtt_publish import publish_command
 from .permissions import (
     admin_or_global_required,
@@ -211,6 +211,11 @@ def sensor_command(request, pk):
         value = float(body["value"])
     except (KeyError, ValueError, TypeError, json.JSONDecodeError):
         return JsonResponse({"error": "Valor inválido."}, status=400)
+
+    if sensor.device.tag == "simulado":
+        # Dispositivo de `simular_seguidor`: el comando se guarda en la BD y el simulador lo aplica.
+        SensorReading.objects.create(sensor=sensor, value=value, timestamp=timezone.now())
+        return JsonResponse({"published": True, "value": value})
 
     ok = publish_command(sensor.device, sensor.variable, value)
     if not ok:
