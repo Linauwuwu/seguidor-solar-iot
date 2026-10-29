@@ -1,3 +1,5 @@
+name: seguidor-solarcito
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2
