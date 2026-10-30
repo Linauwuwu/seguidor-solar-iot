@@ -111,7 +111,10 @@ services:
         - action: rebuild
           path: ./backend/requirements.txt
 
+  # SIMULACIÓN del PLC: escribe en el mismo dispositivo "plc" que el PLC real, por eso no arranca
+  # por defecto. Solo para pruebas sin PLC físico: docker compose --profile simulacion up -d
   simulacion_seguidor:
+    profiles: ["simulacion"]
     build: ./backend
     restart: unless-stopped
     env_file: .env

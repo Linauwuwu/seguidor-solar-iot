@@ -1,0 +1,19 @@
+# Servicio systemd del puente PLC <-> MQTT.
+# Instalar (ajusta User y las rutas si tu usuario no es "pi"):
+#   sudo cp solartrack-plc.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now solartrack-plc
+# Ver registros:  journalctl -u solartrack-plc -f
+[Unit]
+Description=SolarTrack: puente PLC Siemens <-> MQTT
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/solartrack
+ExecStart=/home/pi/solartrack/venv/bin/python -u /home/pi/solartrack/plc_mqtt.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

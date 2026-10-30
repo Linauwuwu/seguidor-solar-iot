@@ -72,6 +72,9 @@ const int DESFASE_PRUEBA_HORAS = 0;
 
 #define MQTT_TOPIC_LONGITUDE           "lina/esp32/longitude"
 
+// Permiso de movimiento calculado por el PLC; lo publica la Raspberry ("1" o "0") cada segundo.
+#define MQTT_TOPIC_PLC_PERMISO         "lina/plc/permiso"
+
 // Temas Django: <prefijo>/<slug>/<variable>/set (comandos)
 //                <prefijo>/<slug>/<variable>     (estado/lecturas)
 char djangoModeSetTopic[160];
@@ -111,6 +114,37 @@ int anguloAzimuth = 90;
 int anguloZenith     = 90;
 
 bool modoAutomatico = false;
+
+// =====================================================
+
+// BLOQUEO POR PERMISO DEL PLC (software: NO reemplaza una parada de emergencia)
+
+// =====================================================
+
+// Sin un permiso "1" recibido hace menos de este tiempo, los servos no se mueven.
+const unsigned long PERMISO_TIMEOUT_MS = 5000;
+
+bool permisoPLC = false;            // bloqueado al arrancar
+
+unsigned long ultimoPermisoMs = 0;
+
+bool servosActivos = false;         // los servos se adjuntan con el primer permiso
+
+bool movimientoPermitido() {
+    return mqttClient.connected() &&
+           permisoPLC &&
+           millis() - ultimoPermisoMs < PERMISO_TIMEOUT_MS;
+}
+
+void activarServos() {
+    // attach() ya mueve el servo a su posición inicial, por eso se espera al permiso del PLC.
+    servoAzimuth.attach(SERVO_AZIMUTH_PIN, 500, 2400);
+    servoAzimuth.write(anguloAzimuth);
+    servoZenith.attach(SERVO_ZENITH_PIN, 500, 2400);
+    servoZenith.write(anguloZenith);
+    servosActivos = true;
+    Serial.println("Permiso del PLC recibido: servos activados en 90 grados");
+}
 
 void publishDjangoValue(const char* variable, float value) {
     if (!mqttClient.connected()) return;
@@ -294,45 +328,24 @@ void moverServoSuave(
 
       );
 
-      if (anguloObjetivo > anguloActual) {
+      // Grado a grado; se detiene en cuanto el PLC deja de autorizar (auto y manual).
+      while (anguloActual != anguloObjetivo) {
 
-           for (
+           if (!movimientoPermitido()) {
 
-                 int angulo = anguloActual;
+                 Serial.println("Movimiento BLOQUEADO: sin permiso vigente del PLC");
 
-                 angulo <= anguloObjetivo;
-
-                 angulo++
-
-           ) {
-
-                 servo.write(angulo);
-
-                 delay(20);
+                 return;
 
            }
 
-      } else if (anguloObjetivo < anguloActual) {
+           anguloActual += (anguloObjetivo > anguloActual) ? 1 : -1;
 
-           for (
+           servo.write(anguloActual);
 
-                 int angulo = anguloActual;
+           delay(20);
 
-              angulo >= anguloObjetivo;
-
-              angulo--
-
-        ) {
-
-              servo.write(angulo);
-
-              delay(20);
-
-        }
-
-    }
-
-    anguloActual = anguloObjetivo;
+      }
 
 }
 
@@ -350,6 +363,20 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
         mensaje += (char)payload[i];
 
+    }
+
+    // Permiso del PLC (llega cada segundo; no se imprime para no saturar el monitor serie)
+    if (strcmp(topic, MQTT_TOPIC_PLC_PERMISO) == 0) {
+        bool nuevo = (mensaje == "1");
+        if (nuevo != permisoPLC) {
+            Serial.println(nuevo ? "PLC: movimiento PERMITIDO" : "PLC: movimiento BLOQUEADO");
+        }
+        permisoPLC = nuevo;
+        ultimoPermisoMs = millis();
+        if (permisoPLC && !servosActivos) {
+            activarServos();
+        }
+        return;
     }
 
     Serial.print("Mensaje recibido en ");
@@ -543,6 +570,8 @@ if (connected) {
 
     Serial.println(" conectado.");
 
+    permisoPLC = false;  // tras una reconexión se exige un permiso nuevo del PLC
+
     mqttClient.publish(
 
            MQTT_TOPIC_STATUS,
@@ -563,6 +592,7 @@ if (connected) {
     mqttClient.subscribe(djangoModeSetTopic, 1);
     mqttClient.subscribe(djangoServoSetTopic, 1);
     mqttClient.subscribe(djangoServo2SetTopic, 1);
+    mqttClient.subscribe(MQTT_TOPIC_PLC_PERMISO);
     publishModeState();
 
     Serial.println("Suscrito a control de servos y modo");
@@ -1079,21 +1109,12 @@ Serial.println("LDR abajo: GPIO 33");
 
 servoAzimuth.setPeriodHertz(50);
 
-servoAzimuth.attach(SERVO_AZIMUTH_PIN, 500, 2400);
-
-servoAzimuth.write(90);
-
-Serial.println("Servo AZIMUT iniciado en 90 grados");
-
 // SERVO VERTICAL
 
 servoZenith.setPeriodHertz(50);
 
-servoZenith.attach(SERVO_ZENITH_PIN, 500, 2400);
-
-servoZenith.write(90);
-
-Serial.println("Servo ZENITH iniciado en 90 grados");
+// Bloqueo por defecto: los servos se adjuntan (y van a 90 grados) solo con el primer permiso del PLC.
+Serial.println("Servos BLOQUEADOS hasta recibir permiso del PLC");
 
 connectWiFi();
 
@@ -1197,6 +1218,8 @@ mqttClient.loop();
 if (
 
        modoAutomatico &&
+
+       movimientoPermitido() &&
 
        millis() - ultimoControl >= intervaloControl
 
@@ -1570,6 +1593,7 @@ if (millis() - lastPublish >= publishInterval) {
     publishModeState();
     publishDjangoValue("azimuth", anguloAzimuth);
     publishDjangoValue("zenith", anguloZenith);
+    publishDjangoValue("movimiento_permitido", movimientoPermitido() ? 1.0f : 0.0f);
 
     struct tm tiempoLocal;
 

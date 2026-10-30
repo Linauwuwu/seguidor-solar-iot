@@ -39,6 +39,32 @@
   </div>
 </section>
 
+<section class="solar-overview-panel plc-supervision" id="plc-supervision" aria-label="Supervisión del PLC">
+  <h2>Supervisión PLC</h2>
+  <p class="solar-hint">Estado real del PLC Siemens recibido a través de la Raspberry (raspberry/plc_mqtt.py). El bloqueo es por software y no reemplaza una parada de emergencia.</p>
+  <div class="solar-device-statuses">
+    <div class="solar-status-item" data-plc-item="raspberry"><span class="solar-status-led" aria-hidden="true"></span><div><strong>Raspberry ↔ PLC</strong><small data-plc-label>Sin datos</small></div></div>
+    <div class="solar-status-item" data-plc-item="plc"><span class="solar-status-led" aria-hidden="true"></span><div><strong>PLC</strong><small data-plc-label>Sin datos</small></div></div>
+    <div class="solar-status-item" data-plc-item="online"><span class="solar-status-led" aria-hidden="true"></span><div><strong>RaspberryOnline (PLC)</strong><small data-plc-label>Sin datos</small></div></div>
+    <div class="solar-status-item" data-plc-item="habilitar"><span class="solar-status-led" aria-hidden="true"></span><div><strong>Habilitar</strong><small data-plc-label>Sin datos</small></div></div>
+    <div class="solar-status-item" data-plc-item="bloqueo"><span class="solar-status-led" aria-hidden="true"></span><div><strong>Bloqueo</strong><small data-plc-label>Sin datos</small></div></div>
+    <div class="solar-status-item" data-plc-item="permiso"><span class="solar-status-led" aria-hidden="true"></span><div><strong>Permiso de movimiento</strong><small data-plc-label>Sin datos</small></div></div>
+    <div class="solar-status-item" data-plc-item="esp32"><span class="solar-status-led" aria-hidden="true"></span><div><strong>ESP32 obedece</strong><small data-plc-label>Sin datos</small></div></div>
+  </div>
+  <dl class="solar-location-info plc-values">
+    <div><dt>Ángulo horizontal (PLC)</dt><dd id="plc-angulo-horizontal">--°</dd></div>
+    <div><dt>Ángulo vertical (PLC)</dt><dd id="plc-angulo-vertical">--°</dd></div>
+    <div><dt>Escrituras al PLC</dt><dd id="plc-escritura">--</dd></div>
+    <div><dt>Última actualización</dt><dd id="plc-actualizado">--</dd></div>
+  </dl>
+  <ul class="plc-alerts" id="plc-alerts" aria-live="polite"></ul>
+  <div class="plc-actions">
+    <button type="button" class="btn" data-plc-habilitar="1" disabled>Habilitar movimiento</button>
+    <button type="button" class="btn btn-secondary" data-plc-habilitar="0" disabled>Deshabilitar</button>
+    <small id="plc-command-state" class="solar-hint"></small>
+  </div>
+</section>
+
 {{ seed_data|json_script:"seed-data" }}
 
 <div id="dashboard-root" class="solar-dashboard" data-api-url="{% url 'monitoring:api-latest' %}" data-command-url-template="{% url 'monitoring:sensor-command' 0 %}">
@@ -117,5 +143,6 @@
   </section>
   <p class="solar-hint">Los controles de administración, usuarios y dispositivos originales siguen disponibles en la plataforma.</p>
 </div>
+<script src="{% static 'monitoring/js/plc.js' %}"></script>
 <script src="{% static 'monitoring/js/dashboard.js' %}"></script>
 {% endblock %}

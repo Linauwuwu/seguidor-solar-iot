@@ -1342,3 +1342,12 @@ input,select,textarea{accent-color:var(--st-accent)}
 .pagination nav{display:flex;gap:6px;flex-wrap:wrap}
 .pagination a,.pagination .current{min-width:38px;min-height:38px;padding:0 12px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-weight:600;background:var(--st-card);border:1px solid var(--st-border);color:var(--st-text)}
 .pagination .current{background:var(--st-accent);border-color:var(--st-accent);color:var(--st-on-accent)}
+
+/* Supervisión PLC */
+.plc-supervision{margin:0 0 24px}
+.plc-values{grid-template-columns:repeat(4,minmax(0,1fr))}
+.plc-alerts{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
+.plc-alerts li{padding:10px 12px;border-radius:10px;background:var(--st-off-soft);border-left:4px solid var(--st-off);font-size:14px}
+.plc-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
+.plc-actions .solar-hint{margin:0}
+@media (max-width:720px){.plc-values{grid-template-columns:repeat(2,minmax(0,1fr))}}
