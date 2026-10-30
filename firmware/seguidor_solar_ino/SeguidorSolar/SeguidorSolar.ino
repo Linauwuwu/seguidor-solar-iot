@@ -4,32 +4,34 @@
 #include <ArduinoJson.h>
 #include "PosicionSolar.h"
 
+// Credenciales (WiFi, broker MQTT y token de Django) en secrets.h, que NO se sube a GitHub.
+// Copia secrets.example.h como secrets.h en esta misma carpeta y completa tus datos.
+#if __has_include("secrets.h")
+#include "secrets.h"
+#else
+#error "Falta secrets.h: copia secrets.example.h como secrets.h y completa tus datos"
+#endif
+
 #include <ESP32Servo.h>
 
 // ---------- Credenciales WiFi ----------
 
-#define WIFI_SSID          "wifi"
 
-#define WIFI_PASSWORD      "contraseña"
 
 // ---------- Broker MQTT ----------
 
-#define MQTT_BROKER        "ip"
 
 #define MQTT_PORT          1883
 
-#define MQTT_USER          "user"
 
-#define MQTT_PASSWORD      "contraseña"
 
 #define MQTT_CLIENT_ID "esp32-lina"
 
 // === Integración con Django ===
 // Deben coincidir con MQTT_TOPIC_PREFIX, slug y auth_token del dispositivo Django.
-// No compartas el archivo una vez rellenado el token real.
+// El token real va en secrets.h (DJANGO_DEVICE_TOKEN).
 #define DJANGO_MQTT_PREFIX "ecs"
 #define DJANGO_DEVICE_SLUG "seguidor-solar-iot"
-#define DJANGO_DEVICE_TOKEN "token_esp32"
 
 
 const int DESFASE_PRUEBA_HORAS = 0;
@@ -373,6 +375,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         }
         permisoPLC = nuevo;
         ultimoPermisoMs = millis();
+        static unsigned long ultimoLogPermiso = 0;
+        if (millis() - ultimoLogPermiso >= 5000) {
+            Serial.printf("MQTT PLC: permiso recibido = %d\n", permisoPLC);
+            ultimoLogPermiso = millis();
+        }
         if (permisoPLC && !servosActivos) {
             activarServos();
         }
@@ -592,7 +599,13 @@ if (connected) {
     mqttClient.subscribe(djangoModeSetTopic, 1);
     mqttClient.subscribe(djangoServoSetTopic, 1);
     mqttClient.subscribe(djangoServo2SetTopic, 1);
-    mqttClient.subscribe(MQTT_TOPIC_PLC_PERMISO);
+    bool suscripcionPLC = mqttClient.subscribe(MQTT_TOPIC_PLC_PERMISO);
+
+    Serial.printf(
+        "Suscripcion MQTT PLC: %s\n",
+        suscripcionPLC ? "OK" : "FALLO"
+    );
+    
     publishModeState();
 
     Serial.println("Suscrito a control de servos y modo");
