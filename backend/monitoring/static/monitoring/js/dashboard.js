@@ -13,14 +13,20 @@
   const timestamps = {};
   const chartKeys = ['light_left','light_right','light_up','light_down'];
   const labels = ['Izquierda','Derecha','Arriba','Abajo'];
-  const colors = ['#ee86a7','#6aa9e8','#55ba9b','#e6ad52'];
+  // Colores del tema elegido (css/dashboard.css): un tono por línea y un trazo distinto para diferenciarlas.
+  const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const lineVars = ['--st-line-1','--st-line-2','--st-line-3','--st-line-4'];
+  const dashes = [[],[7,4],[],[2,4]];
+  const colors = lineVars.map(cssVar);
   const points = {};
   function localTime(t){return new Date(t).toLocaleTimeString('es-CL',{timeZone:'America/Santiago',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false})}
   for (const key of chartKeys){const sensor=find(key);points[key] = sensor ? (seed[sensor.id]||[]).filter(p=>Number.isFinite(Number(p.v))&&Number.isFinite(new Date(p.t).getTime())).map(p=>({x:new Date(p.t).getTime(),y:Number(p.v)})) : [];}
   let chart=null;
   if (typeof Chart !== 'undefined') {
-    chart = new Chart($('solar-ldr-chart'), {type:'line',data:{datasets:chartKeys.map((key,i)=>({label:labels[i],data:points[key],borderColor:colors[i],backgroundColor:colors[i],pointRadius:0,pointHoverRadius:4,borderWidth:2,tension:.25,fill:false,parsing:false,hidden:false}))},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items.length?localTime(items[0].parsed.x):''}}},scales:{x:{type:'linear',ticks:{maxTicksLimit:6,callback:v=>localTime(v)},grid:{color:'rgba(128,128,128,.12)'},title:{display:true,text:'Hora (Santiago)'}},y:{beginAtZero:true,title:{display:true,text:'Lectura LDR'},grid:{color:'rgba(128,128,128,.12)'}}}}});
+    chart = new Chart($('solar-ldr-chart'), {type:'line',data:{datasets:chartKeys.map((key,i)=>({label:labels[i],data:points[key],borderColor:colors[i],backgroundColor:colors[i],borderDash:dashes[i],pointRadius:0,pointHoverRadius:4,borderWidth:2.2,tension:.25,fill:false,parsing:false,hidden:false}))},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items.length?localTime(items[0].parsed.x):''}}},scales:{x:{type:'linear',ticks:{maxTicksLimit:6,callback:v=>localTime(v)},grid:{color:'rgba(128,128,128,.12)'},title:{display:true,text:'Hora (Santiago)'}},y:{beginAtZero:true,title:{display:true,text:'Lectura LDR'},grid:{color:'rgba(128,128,128,.12)'}}}}});
   } else {$('solar-ldr-message').textContent='Chart.js no está cargado. Revisa la plantilla base para habilitar la gráfica.';}
+  function themeChart(){if(!chart)return;const grid=cssVar('--st-border'),text=cssVar('--st-muted');chart.data.datasets.forEach((d,i)=>{d.borderColor=d.backgroundColor=cssVar(lineVars[i]);});for(const axis of Object.values(chart.options.scales)){axis.grid.color=grid;axis.ticks.color=text;axis.title.color=text;}chart.update('none');}
+  themeChart();document.addEventListener('solartrack:theme',themeChart);
   document.querySelectorAll('[data-ldr-filter]').forEach(input=>input.addEventListener('change',()=>{if(!chart)return;const i=chartKeys.indexOf(input.dataset.ldrFilter);chart.setDatasetVisibility(i,input.checked);chart.update();}));
   function drawLdr(){if(chart) {for(let i=0;i<4;i++) chart.data.datasets[i].data=points[chartKeys[i]];chart.update('none');} const found=chartKeys.filter(k=>find(k));$('solar-light-state').textContent=found.length+'/4 sensores';$('solar-ldr-message').textContent=found.length?'Historial de hasta 50 muestras por sensor; nuevas lecturas en vivo.':'No se encontraron sensores LDR registrados.';$('solar-ldr-latest').innerHTML=chartKeys.map((k,i)=>`<div>${labels[i]}<strong>${Number.isFinite(values[k])?values[k].toFixed(0):'--'}</strong></div>`).join('');}
   // Globe is rendered in 3D with CSS transforms and perspective; the sun's

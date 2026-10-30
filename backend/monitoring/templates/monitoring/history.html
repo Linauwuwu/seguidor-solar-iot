@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Historial - {{ block.super }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Historial de mediciones</h1>
+    <p class="hint">Lecturas guardadas de cada sensor, filtradas por fecha (hora de Santiago).</p>
+  </div>
+  <a class="btn-secondary" href="{% url 'monitoring:dashboard' %}">Volver al panel</a>
+</div>
+
+{% if not sensor %}
+  <p class="empty-state">Todavía no hay sensores registrados. Cuando un dispositivo envíe datos, sus lecturas aparecerán aquí.</p>
+{% else %}
+<form class="history-filters" method="get">
+  <label class="wide">Equipo y variable
+    <select name="sensor">
+      {% regroup sensors by device as groups %}
+      {% for group in groups %}
+        <optgroup label="{{ group.grouper.name }} · {{ group.grouper.slug }}">
+          {% for s in group.list %}
+            <option value="{{ s.pk }}"{% if s.pk == sensor.pk %} selected{% endif %}>{{ s.variable }}{% if s.unit %} ({{ s.unit }}){% endif %}</option>
+          {% endfor %}
+        </optgroup>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Desde <input type="date" name="desde" value="{{ date_from|date:'Y-m-d' }}"></label>
+  <label>Hasta <input type="date" name="hasta" value="{{ date_to|date:'Y-m-d' }}"></label>
+  <button type="submit" class="btn">Filtrar</button>
+  <a class="btn-secondary" href="?{{ query }}{% if query %}&amp;{% endif %}formato=csv">Descargar CSV</a>
+</form>
+
+<div class="history-stats">
+  <div>Lecturas<strong>{{ stats.count }}</strong></div>
+  <div>Mínimo<strong>{{ stats.minimum|floatformat:2|default:"--" }}</strong></div>
+  <div>Promedio<strong>{{ stats.average|floatformat:2|default:"--" }}</strong></div>
+  <div>Máximo<strong>{{ stats.maximum|floatformat:2|default:"--" }}</strong></div>
+</div>
+
+{% if stats.count %}
+  {{ chart_data|json_script:"history-data" }}
+  <div class="history-chart"><canvas id="history-chart" role="img" aria-label="Gráfico de {{ sensor.variable }} en el rango elegido" data-label="{{ sensor.variable }}{% if sensor.unit %} ({{ sensor.unit }}){% endif %}"></canvas></div>
+  {% if chart_truncated %}<p class="hint">El gráfico muestra las últimas 500 lecturas del rango; la tabla y el CSV incluyen todas.</p>{% endif %}
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Fecha y hora</th><th>Equipo</th><th>Variable</th><th class="num">Valor</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+          <tr><td>{{ row.local|date:"d-m-Y H:i:s" }}</td><td>{{ sensor.device.name }}</td><td>{{ sensor.variable }}</td><td class="num">{{ row.reading.value|floatformat:2 }}{% if sensor.unit %} {{ sensor.unit }}{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <span>Mostrando {{ page.start_index }}–{{ page.end_index }} de {{ page.paginator.count }}</span>
+    {% if page.has_other_pages %}
+    <nav aria-label="Páginas">
+      {% if page.has_previous %}<a href="?{{ query }}&amp;page={{ page.previous_page_number }}">Anterior</a>{% endif %}
+      <span class="current" aria-current="page">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a href="?{{ query }}&amp;page={{ page.next_page_number }}">Siguiente</a>{% endif %}
+    </nav>
+    {% endif %}
+  </div>
+{% else %}
+  <p class="empty-state">No hay lecturas de <strong>{{ sensor.variable }}</strong> entre esas fechas. Prueba con otro rango.</p>
+{% endif %}
+{% endif %}
+<script src="{% static 'monitoring/js/history.js' %}"></script>
+{% endblock %}

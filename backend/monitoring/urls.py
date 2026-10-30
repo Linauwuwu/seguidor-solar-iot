@@ -7,6 +7,7 @@ app_name = "monitoring"
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("api/sensors/latest/", views.api_latest_values, name="api-latest"),
+    path("historial/", views.history, name="history"),
     path("devices/", views.device_list, name="device-list"),
     path("devices/add/", views.device_create, name="device-create"),
     path("devices/<int:pk>/provisioning/", views.device_provisioning, name="device-provisioning"),

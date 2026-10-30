@@ -1,4 +1,7 @@
+import csv
 import json
+from datetime import datetime, time, timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.contrib import messages
@@ -6,8 +9,10 @@ from django.templatetags.static import static
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q
-from django.http import HttpResponseNotAllowed, JsonResponse
+from django.core.paginator import Paginator
+from django.db.models import Avg, Count, Max, Min, Q
+from django.http import HttpResponse, HttpResponseNotAllowed, JsonResponse
+from django.utils.dateparse import parse_date
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -95,6 +100,87 @@ def api_latest_values(request):
             "devices": device_payload,
         }
     )
+
+
+HISTORY_PAGE_SIZE = 50
+HISTORY_CHART_POINTS = 500
+
+
+def _local_zone():
+    """Zona horaria de Chile para filtrar por fecha local; UTC si el sistema no trae datos de zonas."""
+    try:
+        from zoneinfo import ZoneInfo
+
+        return ZoneInfo("America/Santiago")
+    except Exception:
+        return dt_timezone.utc
+
+
+def _parse_day(raw):
+    """Fecha AAAA-MM-DD del formulario, o None si viene vacía o mal escrita."""
+    try:
+        return parse_date(raw or "")
+    except ValueError:
+        return None
+
+
+@login_required
+def history(request):
+    """Lecturas guardadas de un sensor, filtradas por rango de fechas (solo lectura, sin cambios en la BD)."""
+    sensors = (
+        Sensor.objects.filter(device__in=devices_for(request.user))
+        .select_related("device")
+        .order_by("device__name", "variable")
+    )
+    sensor = None
+    if request.GET.get("sensor", "").isdigit():
+        sensor = sensors.filter(pk=int(request.GET["sensor"])).first()
+    if sensor is None:
+        sensor = sensors.first()
+
+    zone = _local_zone()
+    today = timezone.now().astimezone(zone).date()
+    date_to = _parse_day(request.GET.get("hasta")) or today
+    date_from = _parse_day(request.GET.get("desde")) or date_to
+    if date_from > date_to:
+        date_from, date_to = date_to, date_from
+    start = datetime.combine(date_from, time.min, tzinfo=zone)
+    end = datetime.combine(date_to + timedelta(days=1), time.min, tzinfo=zone)
+
+    readings = sensor.readings.filter(timestamp__gte=start, timestamp__lt=end) if sensor else SensorReading.objects.none()
+
+    if sensor and request.GET.get("formato") == "csv":
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        filename = f"historial_{sensor.device.slug}_{sensor.variable}_{date_from}_{date_to}.csv"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        writer = csv.writer(response)
+        writer.writerow(["fecha_hora", "equipo", "variable", "valor", "unidad"])
+        for r in readings.order_by("timestamp").iterator():
+            writer.writerow([r.timestamp.astimezone(zone).isoformat(), sensor.device.slug, sensor.variable, r.value, sensor.unit])
+        return response
+
+    stats = readings.aggregate(count=Count("id"), minimum=Min("value"), average=Avg("value"), maximum=Max("value"))
+    page = Paginator(readings.order_by("-timestamp"), HISTORY_PAGE_SIZE).get_page(request.GET.get("page"))
+    chart = list(readings.order_by("-timestamp")[:HISTORY_CHART_POINTS])
+    chart.reverse()
+
+    query = request.GET.copy()
+    query.pop("page", None)
+    query.pop("formato", None)
+
+    context = {
+        "sensors": sensors,
+        "sensor": sensor,
+        "date_from": date_from,
+        "date_to": date_to,
+        "stats": stats,
+        "page": page,
+        "rows": [{"reading": r, "local": r.timestamp.astimezone(zone)} for r in page.object_list],
+        "chart_data": [{"t": r.timestamp.isoformat(), "v": r.value} for r in chart],
+        "chart_truncated": stats["count"] > HISTORY_CHART_POINTS,
+        "query": query.urlencode(),
+    }
+    return render(request, "monitoring/history.html", context)
 
 
 DEVICE_SORT_CHOICES = {

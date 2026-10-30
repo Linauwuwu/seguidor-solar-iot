@@ -3,8 +3,12 @@
 {% block title %}Entrar - {{ block.super }}{% endblock %}
 {% block content %}
 <div class="login-box">
-    <img src="{% if effective_logo_url %}{{ effective_logo_url }}{% else %}{% static 'monitoring/img/solar-logo.svg' %}{% endif %}" alt="Logo Seguidor Solar IoT" class="login-logo-img">
-    <h1>Seguidor Solar IoT</h1>
+    {% if effective_logo_url %}
+        <img src="{{ effective_logo_url }}" alt="Logo" class="login-logo-img">
+    {% else %}
+        {% include "includes/st_logo.html" with size=64 %}
+    {% endif %}
+    <h1>SolarTrack IoT</h1>
     <p>Inicia sesión para ver el panel en tiempo real.</p>
     {% if form.errors %}
         <p class="error">Usuario o contraseña incorrectos.</p>

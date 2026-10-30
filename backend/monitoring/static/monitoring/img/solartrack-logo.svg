@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256">
+  <!-- SolarTrack IoT · logo Nodo (versión rosa claro, para documentos y presentaciones) -->
+  <circle cx="32" cy="32" r="24" fill="none" stroke="#E58AAA" stroke-width="2.5"/>
+  <circle cx="32" cy="32" r="10" fill="#BE2158"/>
+  <path d="M32 16v3M48 32h-3M32 48v-3M16 32h3" stroke="#BE2158" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="8" r="4" fill="#8B1D45"/>
+  <circle cx="56" cy="32" r="4" fill="#8B1D45"/>
+  <circle cx="32" cy="56" r="4" fill="#BE2158"/>
+  <circle cx="8" cy="32" r="4" fill="#8B1D45"/>
+</svg>

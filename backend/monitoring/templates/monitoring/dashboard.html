@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static l10n %}
-{% block title %}Seguidor Solar IoT - {{ block.super }}{% endblock %}
+{% block title %}Panel del seguidor - {{ block.super }}{% endblock %}
 {% block content %}
 
 <div class="page-header">
   <div>
-    <h1>☀️ Seguidor Solar IoT</h1>
+    <h1>{% include "includes/st_logo.html" with size=32 %} SolarTrack IoT</h1>
     <p>
       Sistema de seguimiento solar automático.
       Monitoreo en tiempo real de luminosidad,
@@ -80,7 +80,7 @@
           <div class="solar-sphere-equator"></div><div class="solar-sphere-meridian"></div><div class="solar-sphere-meridian solar-sphere-meridian-2"></div>
           <div class="solar-sphere-horizon"></div><div class="solar-sphere-axis"></div>
         </div>
-        <div class="solar-sun" id="solar-sun" hidden>☀</div>
+        <div class="solar-sun" id="solar-sun" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></div>
         <span class="solar-direction solar-north">N</span><span class="solar-direction solar-south">S</span><span class="solar-direction solar-east">E</span><span class="solar-direction solar-west">O</span>
       </div>
       <div class="solar-sphere-help">↔ Arrastra para rotar · Esfera interactiva</div>
@@ -93,10 +93,10 @@
       <div class="solar-panel-heading"><div><span class="solar-eyebrow">SENSORES LDR</span><h2>Luminosidad en el tiempo</h2></div><span class="solar-live-chip" id="solar-light-state">Esperando datos</span></div>
       <p class="solar-hint">Activa o desactiva sensores para comparar sus lecturas. Las horas corresponden a Santiago.</p>
       <div class="solar-ldr-filters">
-        <label><input type="checkbox" data-ldr-filter="light_left" checked><i style="--ldr-color:#ee86a7"></i> Izquierda</label>
-        <label><input type="checkbox" data-ldr-filter="light_right" checked><i style="--ldr-color:#6aa9e8"></i> Derecha</label>
-        <label><input type="checkbox" data-ldr-filter="light_up" checked><i style="--ldr-color:#55ba9b"></i> Arriba</label>
-        <label><input type="checkbox" data-ldr-filter="light_down" checked><i style="--ldr-color:#e6ad52"></i> Abajo</label>
+        <label><input type="checkbox" data-ldr-filter="light_left" checked><i style="--ldr-color:var(--st-line-1)"></i> Izquierda</label>
+        <label><input type="checkbox" data-ldr-filter="light_right" checked><i style="--ldr-color:var(--st-line-2);--ldr-style:dashed"></i> Derecha</label>
+        <label><input type="checkbox" data-ldr-filter="light_up" checked><i style="--ldr-color:var(--st-line-3)"></i> Arriba</label>
+        <label><input type="checkbox" data-ldr-filter="light_down" checked><i style="--ldr-color:var(--st-line-4);--ldr-style:dotted"></i> Abajo</label>
       </div>
       <div class="solar-ldr-chart-wrap"><canvas id="solar-ldr-chart" role="img" aria-label="Histórico de luminosidad de cuatro sensores LDR"></canvas></div>
       <p class="solar-hint" id="solar-ldr-message">Buscando historial de los cuatro LDR…</p>
